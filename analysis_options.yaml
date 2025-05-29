@@ -1,28 +1,34 @@
-# This file configures the analyzer, which statically analyzes Dart code to
-# check for errors, warnings, and lints.
-#
-# The issues identified by the analyzer are surfaced in the UI of Dart-enabled
-# IDEs (https://dart.dev/tools#ides-and-editors). The analyzer can also be
-# invoked from the command line by running `flutter analyze`.
+# Flutter脚手架代码分析配置
+# 使用very_good_analysis作为基础，这是业界最严格的Flutter代码规范
+# 更多信息: https://dart.dev/guides/language/analysis-options
 
-# The following line activates a set of recommended lints for Flutter apps,
-# packages, and plugins designed to encourage good coding practices.
-include: package:flutter_lints/flutter.yaml
+include: package:very_good_analysis/analysis_options.yaml
 
 linter:
-  # The lint rules applied to this project can be customized in the
-  # section below to disable rules from the `package:flutter_lints/flutter.yaml`
-  # included above or to enable additional rules. A list of all available lints
-  # and their documentation is published at https://dart.dev/lints.
-  #
-  # Instead of disabling a lint rule for the entire project in the
-  # section below, it can also be suppressed for a single line of code
-  # or a specific dart file by using the `// ignore: name_of_lint` and
-  # `// ignore_for_file: name_of_lint` syntax on the line or in the file
-  # producing the lint.
   rules:
-    # avoid_print: false  # Uncomment to disable the `avoid_print` rule
-    # prefer_single_quotes: true  # Uncomment to enable the `prefer_single_quotes` rule
-
-# Additional information about this file can be found at
-# https://dart.dev/guides/language/analysis-options
+    # 自定义规则，根据项目需要调整
+    file_names: true
+    always_use_package_imports: true
+    prefer_single_quotes: true
+    sort_pub_dependencies: true
+    
+    # 禁用一些在开发阶段可能过于严格的规则
+    public_member_api_docs: false  # 开发阶段不强制要求所有公共成员都有文档
+    
+analyzer:
+  exclude:
+    - "**/*.g.dart"      # 排除代码生成文件
+    - "**/*.freezed.dart" # 排除freezed生成文件
+    - "build/**"         # 排除构建输出
+    - "ios/**"          # 排除iOS原生代码
+    - "android/**"      # 排除Android原生代码
+    - "linux/**"        # 排除Linux原生代码
+    - "macos/**"        # 排除macOS原生代码
+    - "windows/**"      # 排除Windows原生代码
+    - "web/**"          # 排除Web原生代码
+    
+  errors:
+    # 将某些警告提升为错误，确保代码质量
+    invalid_annotation_target: error
+    missing_required_param: error
+    missing_return: error 

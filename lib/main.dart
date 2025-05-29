@@ -1,122 +1,91 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 
-void main() {
-  runApp(const MyApp());
+import 'app/app.dart';
+import 'app/localization/app_localizations.dart';
+import 'core/services/storage_service.dart';
+
+void main() async {
+  // 确保Flutter Widgets绑定已初始化
+  // 这是在runApp之前进行异步操作的标准做法
+  WidgetsFlutterBinding.ensureInitialized();
+
+  // 初始化核心服务
+  await _initializeServices();
+
+  // 检查并设置设备方向为横屏模式（适用于收银台设备）
+  await _setLandscapeOrientation();
+
+  // 尝试自动登录
+  await _autoLogin();
+
+  // 启动应用
+  // ProviderScope 是 Riverpod 的根容器，所有 Provider 都需要在这个作用域内
+  runApp(
+    const ProviderScope(
+      child: MyApp(),
+    ),
+  );
 }
 
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+/// 初始化应用所需的核心服务
+///
+/// 这个函数负责：
+/// 1. 初始化本地存储（Hive）
+/// 2. 初始化其他必要的服务
+///
+/// 在main函数中调用，确保应用启动前所有依赖都已准备就绪
+Future<void> _initializeServices() async {
+  // 初始化 Hive 本地数据库
+  // Hive 是一个轻量级、快速的 NoSQL 数据库，适合移动应用
+  await Hive.initFlutter();
 
-  // This widget is the root of your application.
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Flutter Demo',
-      theme: ThemeData(
-        // This is the theme of your application.
-        //
-        // TRY THIS: Try running your application with "flutter run". You'll see
-        // the application has a purple toolbar. Then, without quitting the app,
-        // try changing the seedColor in the colorScheme below to Colors.green
-        // and then invoke "hot reload" (save your changes or press the "hot
-        // reload" button in a Flutter-supported IDE, or press "r" if you used
-        // the command line to start the app).
-        //
-        // Notice that the counter didn't reset back to zero; the application
-        // state is not lost during the reload. To reset the state, use hot
-        // restart instead.
-        //
-        // This works for code too, not just values: Most code changes can be
-        // tested with just a hot reload.
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
-      ),
-      home: const MyHomePage(title: 'Flutter Demo Home Page'),
-    );
-  }
+  // 初始化存储服务
+  // 这里会注册所有需要的 Hive 适配器和打开必要的 boxes
+  await StorageService.initialize();
+
+  // 未来可以在这里添加其他服务的初始化
+  // 例如：推送通知、分析服务、崩溃报告等
+  // await PushNotificationService.initialize();
+  // await AnalyticsService.initialize();
 }
 
-class MyHomePage extends StatefulWidget {
-  const MyHomePage({super.key, required this.title});
-
-  // This widget is the home page of your application. It is stateful, meaning
-  // that it has a State object (defined below) that contains fields that affect
-  // how it looks.
-
-  // This class is the configuration for the state. It holds the values (in this
-  // case the title) provided by the parent (in this case the App widget) and
-  // used by the build method of the State. Fields in a Widget subclass are
-  // always marked "final".
-
-  final String title;
-
-  @override
-  State<MyHomePage> createState() => _MyHomePageState();
+/// 设置设备方向为横屏模式
+///
+/// 对于收银台应用，我们需要确保应用始终以横屏模式运行
+Future<void> _setLandscapeOrientation() async {
+  // 设置支持的设备方向为仅横屏
+  await SystemChrome.setPreferredOrientations([
+    DeviceOrientation.landscapeLeft,
+    DeviceOrientation.landscapeRight,
+  ]);
 }
 
-class _MyHomePageState extends State<MyHomePage> {
-  int _counter = 0;
+/// 自动登录功能
+///
+/// 如果用户之前登录过且选择了"记住我"选项，
+/// 则自动使用保存的凭据进行登录
+Future<void> _autoLogin() async {
+  // 检查是否存在保存的凭据
+  final username = StorageService.getString('remembered_username');
+  final password = StorageService.getString('remembered_password');
 
-  void _incrementCounter() {
-    setState(() {
-      // This call to setState tells the Flutter framework that something has
-      // changed in this State, which causes it to rerun the build method below
-      // so that the display can reflect the updated values. If we changed
-      // _counter without calling setState(), then the build method would not be
-      // called again, and so nothing would appear to happen.
-      _counter++;
-    });
-  }
+  if (username != null && password != null) {
+    // 有保存的凭据，执行自动登录
+    // 这里可以调用登录API，或者直接设置登录状态
 
-  @override
-  Widget build(BuildContext context) {
-    // This method is rerun every time setState is called, for instance as done
-    // by the _incrementCounter method above.
-    //
-    // The Flutter framework has been optimized to make rerunning build methods
-    // fast, so that you can just rebuild anything that needs updating rather
-    // than having to individually change instances of widgets.
-    return Scaffold(
-      appBar: AppBar(
-        // TRY THIS: Try changing the color here to a specific color (to
-        // Colors.amber, perhaps?) and trigger a hot reload to see the AppBar
-        // change color while the other colors stay the same.
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-        // Here we take the value from the MyHomePage object that was created by
-        // the App.build method, and use it to set our appbar title.
-        title: Text(widget.title),
-      ),
-      body: Center(
-        // Center is a layout widget. It takes a single child and positions it
-        // in the middle of the parent.
-        child: Column(
-          // Column is also a layout widget. It takes a list of children and
-          // arranges them vertically. By default, it sizes itself to fit its
-          // children horizontally, and tries to be as tall as its parent.
-          //
-          // Column has various properties to control how it sizes itself and
-          // how it positions its children. Here we use mainAxisAlignment to
-          // center the children vertically; the main axis here is the vertical
-          // axis because Columns are vertical (the cross axis would be
-          // horizontal).
-          //
-          // TRY THIS: Invoke "debug painting" (choose the "Toggle Debug Paint"
-          // action in the IDE, or press "p" in the console), to see the
-          // wireframe for each widget.
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: <Widget>[
-            const Text('You have pushed the button this many times:'),
-            Text(
-              '$_counter',
-              style: Theme.of(context).textTheme.headlineMedium,
-            ),
-          ],
-        ),
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _incrementCounter,
-        tooltip: 'Increment',
-        child: const Icon(Icons.add),
-      ), // This trailing comma makes auto-formatting nicer for build methods.
-    );
+    // 模拟登录API调用
+    await Future.delayed(const Duration(milliseconds: 500));
+
+    // 生成模拟令牌并保存登录状态
+    const String mockToken = 'mock_jwt_token_auto_login';
+    await StorageService.setToken(mockToken);
+    await StorageService.setString('current_username', username);
+
+    // 标记已完成首次启动
+    await StorageService.setFirstLaunch(false);
   }
 }
